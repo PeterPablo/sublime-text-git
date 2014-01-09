@@ -28,6 +28,23 @@ class GitDiff (object):
         view.settings().set("git_root_dir", git_root(self.get_working_dir()))
 
 
+class GitWordDiff (object):
+    def run(self, edit=None):
+        self.run_command(['git', 'diff', '--no-color', '--word-diff', '--', self.get_file_name()],
+                         self.diff_done)
+
+    def diff_done(self, result):
+        if not result.strip():
+            self.panel("No output")
+            return
+        s = sublime.load_settings("Git.sublime-settings")
+        syntax = "Packages/Git/word-diff.tmLanguage"
+        if s.get('diff_panel'):
+            view = self.panel(result, syntax=syntax)
+        else:
+            view = self.scratch(result, title="Git Diff", syntax=syntax)
+
+
 class GitDiffCommit (object):
     def run(self, edit=None, ignore_whitespace=False):
         command = ['git', 'diff', '--cached', '--no-color']
@@ -41,6 +58,20 @@ class GitDiffCommit (object):
             return
         s = sublime.load_settings("Git.sublime-settings")
         syntax = s.get("diff_syntax", "Packages/Diff/Diff.tmLanguage")
+        self.scratch(result, title="Git Diff", syntax=syntax)
+
+
+class GitWordDiffCommit (object):
+    def run(self, edit=None):
+        self.run_command(['git', 'diff', '--cached', '--no-color', '--word-diff'],
+            self.diff_done)
+
+    def diff_done(self, result):
+        if not result.strip():
+            self.panel("No output")
+            return
+        s = sublime.load_settings("Git.sublime-settings")
+        syntax = "Packages/Git/word-diff.tmLanguage"
         self.scratch(result, title="Git Diff", syntax=syntax)
 
 
@@ -59,6 +90,22 @@ class GitDiffCommitCommand(GitDiffCommit, GitWindowCommand):
 class GitGotoDiff(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
+
+class GitWordDiffCommand(GitWordDiff, GitTextCommand):
+    pass
+
+
+class GitWordDiffAllCommand(GitWordDiff, GitWindowCommand):
+    pass
+
+
+class GitWordDiffCommitCommand(GitWordDiffCommit, GitWindowCommand):
+    pass
+
+
+class GitDiffTool(object):
+    def run(self, edit=None):
+        self.run_command(['git', 'difftool', '--', self.get_file_name()])
 
     def run(self, edit):
         v = self.view
